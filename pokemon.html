@@ -35,11 +35,11 @@
             background-color: #45a049;
         }
         .search-bar {
-            width: 80%;
-            max-width: 400px;
+            width: 150%;
+            max-width: 800px;
             padding: 10px;
             margin: 10px 0;
-            border-radius: 5px;
+            border-radius: 20px;
             border: 1px solid #ccc;
         }
         table {
@@ -60,6 +60,20 @@
             width: 60px;
         }
         .hidden { display: none; }
+        .rounded-left {
+            border-top-left-radius: 10px;
+            border-bottom-left-radius: 10px;
+        }
+        .rounded-right {
+            border-top-right-radius: 10px;
+            border-bottom-right-radius: 10px;
+        }
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
     </style>
 </head>
 <body>
@@ -70,11 +84,17 @@
         <button onclick="login()">Se connecter</button>
     </div>
     <div class="container hidden" id="content">
-        <input type="text" class="search-bar" id="search" placeholder="Rechercher un Pokémon...">
+        <div class="stats">
+            <p><strong>Total :</strong> <span id="total-count">0</span></p>
+            <p><strong>Cocher :</strong> <span id="checked-count">0</span></p>
+            <p><strong>En attente :</strong> <span id="unchecked-count">0</span></p>
+        </div>
+        <input type="text" class="search-bar" id="search" placeholder="Rechercher un Pokémon ou un numéro..." oninput="searchPokemons()">
         <div id="pokemon-tables"></div>
     </div>
     <script>
         let currentUser = null;
+        let allPokemons = [];
 
         function login() {
             const username = document.getElementById("username").value;
@@ -115,11 +135,11 @@
                     <table>
                     <thead>
                         <tr>
-                            <th>✔️</th>
+                            <th class='rounded-left'>✔️/❌</th>
                             <th>Image</th>
                             <th>Numéro</th>
                             <th>Nom (FR)</th>
-                            <th>Nom (EN)</th>
+                            <th class='rounded-right'>Nom (EN)</th>
                         </tr>
                     </thead>
                     <tbody>`;
@@ -127,7 +147,7 @@
                 pokemonList.forEach(pokemon => {
                     const isChecked = localStorage.getItem(`pokemon-${pokemon.pokedexNumber}`) === "true";
                     let checkboxOrSymbol = currentUser === "_SR_Off_" 
-                        ? `<input type='checkbox' class='pokemon-checkbox' data-id='${pokemon.pokedexNumber}' ${isChecked ? "checked" : ""}>`
+                        ? `<input type='checkbox' class='pokemon-checkbox rounded-left' data-id='${pokemon.pokedexNumber}' ${isChecked ? "checked" : ""}>`
                         : (isChecked ? "✅" : "❌");
 
                     tableHtml += `
@@ -136,18 +156,22 @@
                             <td><img src="${pokemon.imageUrl}" class="pokemon-image" alt="${pokemon.pokemonNameFR}"></td>
                             <td>${pokemon.pokedexNumber}</td>
                             <td>${pokemon.pokemonNameFR}</td>
-                            <td>${pokemon.pokemonNameEN}</td>
+                            <td class='rounded-right'>${pokemon.pokemonNameEN}</td>
                         </tr>`;
                 });
 
                 tableHtml += `</tbody></table>`;
                 document.getElementById("pokemon-tables").innerHTML += tableHtml;
+                allPokemons = pokemonList;
+
+                updateCheckboxCounts();
 
                 if (currentUser === "_SR_Off_") {
                     document.querySelectorAll(".pokemon-checkbox").forEach(checkbox => {
                         checkbox.addEventListener("change", function () {
                             const pokemonId = this.getAttribute("data-id");
                             localStorage.setItem(`pokemon-${pokemonId}`, this.checked ? "true" : "false");
+                            updateCheckboxCounts();
                         });
                     });
                 }
@@ -164,12 +188,42 @@
             fetchAndDisplayPokemon("https://pokeapi.co/api/v2/generation/5", 5);
         }
 
-        document.getElementById("search").addEventListener("input", function() {
-            const searchValue = this.value.toLowerCase();
+        function updateCheckboxCounts() {
+            const totalCount = document.querySelectorAll(".pokemon-row").length;
+            let checkedCount = 0;
+            let uncheckedCount = 0;
+
             document.querySelectorAll(".pokemon-row").forEach(row => {
-                row.style.display = row.dataset.nameFr.includes(searchValue) || row.dataset.nameEn.includes(searchValue) || row.dataset.id.includes(searchValue) ? "" : "none";
+                const pokemonId = row.getAttribute("data-id");
+                const isChecked = localStorage.getItem(`pokemon-${pokemonId}`) === "true";
+                
+                if (isChecked) {
+                    checkedCount++;
+                } else {
+                    uncheckedCount++;
+                }
             });
-        });
+
+            // Mise à jour des éléments affichant les comptes
+            document.getElementById("total-count").textContent = totalCount;
+            document.getElementById("checked-count").textContent = checkedCount;
+            document.getElementById("unchecked-count").textContent = uncheckedCount;
+        }
+
+        function searchPokemons() {
+            const searchTerm = document.getElementById("search").value.toLowerCase();
+            document.querySelectorAll(".pokemon-row").forEach(row => {
+                const nameFR = row.getAttribute("data-name-fr");
+                const nameEN = row.getAttribute("data-name-en");
+                const pokedexNumber = row.getAttribute("data-id");
+
+                if (nameFR.includes(searchTerm) || nameEN.includes(searchTerm) || pokedexNumber.includes(searchTerm)) {
+                    row.classList.remove("hidden");
+                } else {
+                    row.classList.add("hidden");
+                }
+            });
+        }
     </script>
 </body>
 </html>
