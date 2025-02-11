@@ -27,15 +27,10 @@
             border: 1px solid #ccc;
         }
         button {
-            background-color: #4CAF50;
-            color: white;
             cursor: pointer;
         }
-        button:hover {
-            background-color: #45a049;
-        }
         .search-bar {
-            width: 150%;
+            width: 100%;
             max-width: 800px;
             padding: 10px;
             margin: 10px 0;
@@ -71,8 +66,45 @@
         .stats {
             display: flex;
             justify-content: center;
-            gap: 20px;
+            gap: 10px;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        .buttons-container {
             margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        .buttons-container button {
+            border: none;
+            padding: 12px 20px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .buttons-container button:hover {
+            opacity: 0.8;
+        }
+        .blue-button {
+            background-color: #007bff;
+        }
+        .blue-button:hover {
+            background-color: #0056b3;
+        }
+        .green-button {
+            background-color: #28a745;
+        }
+        .green-button:hover {
+            background-color: #218838;
+        }
+        .red-button {
+            background-color: #dc3545;
+        }
+        .red-button:hover {
+            background-color: #c82333;
         }
     </style>
 </head>
@@ -84,14 +116,28 @@
         <button onclick="login()">Se connecter</button>
     </div>
     <div class="container hidden" id="content">
+        <input type="text" class="search-bar" id="search" placeholder="Rechercher un Pokémon ou un numéro..." oninput="searchPokemons()">
+        
+        <!-- Les statistiques ici, juste après la barre de recherche -->
         <div class="stats">
             <p><strong>Total :</strong> <span id="total-count">0</span></p>
             <p><strong>Cocher :</strong> <span id="checked-count">0</span></p>
             <p><strong>En attente :</strong> <span id="unchecked-count">0</span></p>
         </div>
-        <input type="text" class="search-bar" id="search" placeholder="Rechercher un Pokémon ou un numéro..." oninput="searchPokemons()">
+
+        <div class="buttons-container">
+            <button class="blue-button" onclick="filterPokemon('all')">Afficher Tout</button>
+            <button class="green-button" onclick="filterPokemon('checked')">Déjà ajoutés ✅</button>
+            <button class="red-button" onclick="filterPokemon('unchecked')">En attente ❌</button>
+        </div>
+
         <div id="pokemon-tables"></div>
     </div>
+    <script>
+        // JavaScript reste inchangé
+    </script>
+</body>
+
     <script>
         let currentUser = null;
         let allPokemons = [];
@@ -221,6 +267,21 @@
                     row.classList.remove("hidden");
                 } else {
                     row.classList.add("hidden");
+                }
+            });
+        }
+
+        function filterPokemon(type) {
+            document.querySelectorAll(".pokemon-row").forEach(row => {
+                const pokemonId = row.getAttribute("data-id");
+                const isChecked = localStorage.getItem(`pokemon-${pokemonId}`) === "true";
+
+                if (type === "checked" && !isChecked) {
+                    row.classList.add("hidden");
+                } else if (type === "unchecked" && isChecked) {
+                    row.classList.add("hidden");
+                } else {
+                    row.classList.remove("hidden");
                 }
             });
         }
