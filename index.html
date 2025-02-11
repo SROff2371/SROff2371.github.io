@@ -1,1 +1,175 @@
-"Hello World" 
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liste des Pokémon</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #e0f7fa;
+            text-align: center;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: auto;
+            background: #ffffff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .search-bar {
+            width: 80%;
+            max-width: 400px;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        thead {
+            background-color: #4CAF50;
+            color: white;
+        }
+        th, td {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 2px solid #ddd;
+        }
+        .pokemon-image {
+            width: 60px;
+        }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+    <h1>Liste des Pokémon</h1>
+    <div id="login-container">
+        <input type="text" id="username" placeholder="Nom d'utilisateur">
+        <input type="password" id="password" placeholder="Mot de passe">
+        <button onclick="login()">Se connecter</button>
+    </div>
+    <div class="container hidden" id="content">
+        <input type="text" class="search-bar" id="search" placeholder="Rechercher un Pokémon...">
+        <div id="pokemon-tables"></div>
+    </div>
+    <script>
+        let currentUser = null;
+
+        function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            if ((username === "_SR_Off_" && password === "Klim35700132.") || (username === "invite" && password === "invite")) {
+                currentUser = username;
+                document.getElementById("login-container").classList.add("hidden");
+                document.getElementById("content").classList.remove("hidden");
+                loadPokemonTables();
+            } else {
+                alert("Identifiants incorrects");
+            }
+        }
+
+        async function fetchAndDisplayPokemon(apiUrl, generation) {
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                let pokemonList = [];
+
+                for (const pokemonEntry of data.pokemon_species) {
+                    const pokemonUrl = pokemonEntry.url;
+                    const pokemonResponse = await fetch(pokemonUrl);
+                    const pokemonData = await pokemonResponse.json();
+
+                    const pokedexNumber = pokemonData.id;
+                    const pokemonNameFR = pokemonData.names.find(n => n.language.name === "fr")?.name || pokemonData.name;
+                    const pokemonNameEN = pokemonData.names.find(n => n.language.name === "en")?.name || pokemonData.name;
+                    const imageUrl = `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pokedexNumber}.png`;
+
+                    pokemonList.push({ pokedexNumber, pokemonNameFR, pokemonNameEN, imageUrl });
+                }
+
+                pokemonList.sort((a, b) => a.pokedexNumber - b.pokedexNumber);
+
+                let tableHtml = `<h2>${generation}ᵉ Génération</h2>
+                    <table>
+                    <thead>
+                        <tr>
+                            <th>✔️</th>
+                            <th>Image</th>
+                            <th>Numéro</th>
+                            <th>Nom (FR)</th>
+                            <th>Nom (EN)</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+                pokemonList.forEach(pokemon => {
+                    const isChecked = localStorage.getItem(`pokemon-${pokemon.pokedexNumber}`) === "true";
+                    let checkboxOrSymbol = currentUser === "_SR_Off_" 
+                        ? `<input type='checkbox' class='pokemon-checkbox' data-id='${pokemon.pokedexNumber}' ${isChecked ? "checked" : ""}>`
+                        : (isChecked ? "✅" : "❌");
+
+                    tableHtml += `
+                        <tr class='pokemon-row' data-name-fr='${pokemon.pokemonNameFR.toLowerCase()}' data-name-en='${pokemon.pokemonNameEN.toLowerCase()}' data-id='${pokemon.pokedexNumber}'>
+                            <td>${checkboxOrSymbol}</td>
+                            <td><img src="${pokemon.imageUrl}" class="pokemon-image" alt="${pokemon.pokemonNameFR}"></td>
+                            <td>${pokemon.pokedexNumber}</td>
+                            <td>${pokemon.pokemonNameFR}</td>
+                            <td>${pokemon.pokemonNameEN}</td>
+                        </tr>`;
+                });
+
+                tableHtml += `</tbody></table>`;
+                document.getElementById("pokemon-tables").innerHTML += tableHtml;
+
+                if (currentUser === "_SR_Off_") {
+                    document.querySelectorAll(".pokemon-checkbox").forEach(checkbox => {
+                        checkbox.addEventListener("change", function () {
+                            const pokemonId = this.getAttribute("data-id");
+                            localStorage.setItem(`pokemon-${pokemonId}`, this.checked ? "true" : "false");
+                        });
+                    });
+                }
+            } catch (error) {
+                console.error(`Erreur lors de la récupération des données :`, error);
+            }
+        }
+
+        function loadPokemonTables() {
+            document.getElementById("pokemon-tables").innerHTML = "";
+            fetchAndDisplayPokemon("https://pokeapi.co/api/v2/generation/2", 2);
+            fetchAndDisplayPokemon("https://pokeapi.co/api/v2/generation/3", 3);
+            fetchAndDisplayPokemon("https://pokeapi.co/api/v2/generation/4", 4);
+            fetchAndDisplayPokemon("https://pokeapi.co/api/v2/generation/5", 5);
+        }
+
+        document.getElementById("search").addEventListener("input", function() {
+            const searchValue = this.value.toLowerCase();
+            document.querySelectorAll(".pokemon-row").forEach(row => {
+                row.style.display = row.dataset.nameFr.includes(searchValue) || row.dataset.nameEn.includes(searchValue) || row.dataset.id.includes(searchValue) ? "" : "none";
+            });
+        });
+    </script>
+</body>
+</html>
